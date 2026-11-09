@@ -1,0 +1,24 @@
+---
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { Code } from 'astro:components';
+import BookLayout from '../../layouts/BookLayout.astro';
+import Icon from '../../components/Icon.astro';
+import { chapters, repository, repositoryBranch, chapterUrl, sampleSlug } from '../../lib/book';
+export function getStaticPaths() {
+  const seen = new Map<string, { path: string; label: string }>();
+  for (const chapter of chapters) {
+    for (const sample of chapter.samples) {
+      if (!seen.has(sampleSlug(sample.path))) seen.set(sampleSlug(sample.path), sample);
+    }
+  }
+  return [...seen.entries()].map(([slug, sample]) => ({ params: { slug }, props: { sample } }));
+}
+const { sample } = Astro.props;
+const source = await readFile(resolve(process.cwd(), sample.path), 'utf8');
+const related = chapters.filter(chapter => chapter.samples.some(item => item.path === sample.path));
+const lang = sample.path.endsWith('Dockerfile') ? 'dockerfile' : 'elixir';
+---
+<BookLayout title={sample.label} description={`${sample.label}：Elixir 实战手记的配套示例代码。`}>
+  <div class="source-page"><a class="source-back" href={chapterUrl(related[0].slug)}><Icon name="arrow" size={15} />回到章节：{related[0].title}</a><header class="source-header"><span class="source-badge"><Icon name="code" size={17} />示例代码</span><h1>{sample.label}</h1><p>{related.map(chapter => `第 ${String(chapter.order).padStart(2, '0')} 章`).join(' · ')}</p><a href={`${repository}/blob/${repositoryBranch}/${sample.path}`} target="_blank" rel="noopener noreferrer">在 GitHub 上查看原始文件<Icon name="external" size={14} /></a></header><div class="source-code"><Code code={source} lang={lang} theme="github-dark" /><button class="copy-button" data-copy aria-label="复制代码"><Icon name="copy" size={16} /><span>复制</span></button></div><div class="source-related"><span>在这些章节中读到它</span>{related.map(chapter => <a href={chapterUrl(chapter.slug)}>{String(chapter.order).padStart(2, '0')}　{chapter.title}<Icon name="arrow" size={15} /></a>)}</div></div>
+</BookLayout>

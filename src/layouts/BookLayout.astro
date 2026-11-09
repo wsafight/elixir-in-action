@@ -1,0 +1,44 @@
+---
+import Sidebar from '../components/Sidebar.astro';
+import Icon from '../components/Icon.astro';
+import { repository } from '../lib/book';
+import '../styles/global.css';
+interface Props { title?: string; description?: string; }
+const { title, description = '沿着一个 Todo 系统的演进学习 Elixir：函数式编程、进程、OTP、分布式与发布。一本对照仓库源码编写的中文学习手记。' } = Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#7254a6" />
+    <meta property="og:title" content={title ? `${title} · Elixir 实战手记` : 'Elixir 实战手记 · 从函数到可靠系统'} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title ? `${title} · Elixir 实战手记` : 'Elixir 实战手记 · 从函数到可靠系统'}</title>
+    <script is:inline>
+      try { document.documentElement.dataset.theme = localStorage.getItem('elixir-theme') || 'light'; } catch { document.documentElement.dataset.theme = 'light'; }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <Sidebar />
+    <div class="mobile-overlay" data-menu-close></div>
+    <div class="workspace">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" data-menu-toggle aria-label="打开目录" aria-expanded="false" aria-controls="sidebar"><Icon name="menu" /></button>
+        <div class="breadcrumb"><a href="/">书架</a><Icon name="chevron" size={12} /><span>{title || 'Elixir 实战手记'}</span></div>
+        <div class="header-actions"><a href={repository} target="_blank" rel="noopener noreferrer" class="repository-link"><Icon name="github" size={17} /><span>源码仓库</span><Icon name="external" size={12} /></a><span class="header-divider"></span><button class="icon-button theme-toggle" data-theme-toggle aria-label="切换到深色模式"><Icon name="sun" class="sun-icon" size={19} /><Icon name="moon" class="moon-icon" size={19} /></button></div>
+      </header>
+      <main id="main"><slot /></main>
+      <footer class="site-footer"><span>Elixir 实战手记<span class="footer-divider">/</span>读代码，写代码，改代码。</span><span>用 Astro 构建 <span class="tiny-star">✦</span></span></footer>
+    </div>
+    <dialog class="search-dialog" aria-labelledby="search-title">
+      <div class="search-dialog-top"><Icon name="search" size={21} /><label class="sr-only" id="search-title" for="book-search">搜索全书</label><input id="book-search" type="search" placeholder="搜索章节、概念或代码…" autocomplete="off" /><button class="search-close" data-search-close aria-label="关闭搜索">Esc</button></div>
+      <div class="search-results" aria-live="polite"><p class="search-hint">试试「GenServer」「监督树」或「状态」</p></div>
+      <div class="search-dialog-footer"><span>全文检索 · 支持中文</span><span>↑ ↓ 选择　↵ 阅读</span></div>
+    </dialog>
+    <script src="../scripts/book.ts"></script>
+  </body>
+</html>

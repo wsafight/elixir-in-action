@@ -1,0 +1,22 @@
+---
+import Icon from './Icon.astro';
+---
+<div class="book-scene" aria-label="Elixir 实战手记的紫色书封">
+  <div class="book-orbit orbit-one"></div><div class="book-orbit orbit-two"></div>
+  <span class="orbit-node node-one"></span><span class="orbit-node node-two"></span>
+  <div class="physical-book">
+    <div class="book-pages"></div>
+    <div class="book-cover">
+      <div class="cover-top"><span>一份从源码出发的学习手记</span><Icon name="code" size={18} /></div>
+      <div class="cover-title">Elixir<span>实战手记</span></div>
+      <p class="cover-subtitle">函数 · 进程 · 可靠系统</p>
+      <svg class="cover-art" viewBox="0 0 260 170" fill="none" aria-hidden="true">
+        <path d="M130 15v32M130 47H58v38M130 47h72v38M130 47v67M58 85H29v43M58 85h29v43M202 85h-29v43M202 85h29v43" stroke="#e6d6ff" stroke-opacity=".6" stroke-width="1.4"/>
+        <circle cx="130" cy="15" r="11" fill="#d8c0ff"/><circle cx="58" cy="85" r="8" fill="#a88dd1" stroke="#d8c0ff"/><circle cx="202" cy="85" r="8" fill="#a88dd1" stroke="#d8c0ff"/><circle cx="130" cy="114" r="8" fill="#efe5ff"/>
+        <circle cx="29" cy="132" r="6" fill="#b79adf"/><circle cx="87" cy="132" r="6" fill="#b79adf"/><circle cx="173" cy="132" r="6" fill="#b79adf"/><circle cx="231" cy="132" r="6" fill="#b79adf"/>
+      </svg>
+      <div class="cover-bottom"><span>从一个 Todo 开始，<br />理解整个运行时。</span><span class="cover-edition">源码<br />导读</span></div>
+    </div>
+  </div>
+  <span class="cover-caption">让一个小程序，长成一个可靠的系统。</span>
+</div>

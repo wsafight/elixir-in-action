@@ -1,0 +1,25 @@
+---
+import BookLayout from '../../layouts/BookLayout.astro';
+import Icon from '../../components/Icon.astro';
+import { chapters, chapterUrl, sampleUrl, parts } from '../../lib/book';
+export function getStaticPaths() {
+  return chapters.map((chapter, index) => ({ params: { slug: chapter.slug }, props: { chapter, index } }));
+}
+const { chapter, index } = Astro.props;
+const { Content } = chapter;
+const headings = chapter.getHeadings().filter(heading => heading.depth === 2);
+const previous = chapters[index - 1];
+const next = chapters[index + 1];
+---
+<BookLayout title={chapter.title} description={chapter.description}>
+  <div class="reader-layout" data-current-chapter={chapter.slug}>
+    <article class="chapter-article">
+      <header class="chapter-header"><a class="chapter-part" href="/#contents">{parts[chapter.part - 1].title}</a><div class="chapter-kicker">第 {String(chapter.order).padStart(2, '0')} 章<span></span>约 {chapter.duration} 分钟</div><h1>{chapter.title}</h1><p>{chapter.description}</p><div class="topic-list">{chapter.topics.map(topic => <span>{topic}</span>)}</div></header>
+      <div class="prose"><Content /></div>
+      <section class="chapter-sources" aria-labelledby="samples-title"><h2 id="samples-title"><Icon name="code" size={20} />本章示例代码</h2><p>正文里讨论的每一段实现都在这，点开可以整段读、整段复制。</p><div>{chapter.samples.map(sample => <a href={sampleUrl(sample.path)}><Icon name="code" size={16} /><span>{sample.label}</span><Icon name="chevron" size={14} /></a>)}</div></section>
+      <div class="chapter-finish"><span><Icon name="bookmark" size={18} /><span data-completion-message>读完了？给自己的学习留个记号。</span></span><button class="secondary-button" data-mark-complete={chapter.slug}><Icon name="check" size={16} /><span>标记为已读</span></button></div>
+      <nav class="chapter-pagination" aria-label="章节翻页">{previous ? <a href={chapterUrl(previous.slug)}><span>上一章</span><strong>{previous.title}</strong></a> : <a href="/"><span>回到</span><strong>全书目录</strong></a>}{next ? <a href={chapterUrl(next.slug)} class="next-chapter"><span>下一章</span><strong>{next.title}<Icon name="arrow" size={17} /></strong></a> : <a href="/#contents" class="next-chapter"><span>读完了</span><strong>回到全书目录<Icon name="arrow" size={17} /></strong></a>}</nav>
+    </article>
+    <aside class="page-toc" aria-label="本章内容"><p>这一章，我们聊</p><nav>{headings.map(heading => <a href={`#${heading.slug}`} data-toc-link>{heading.text}</a>)}</nav><div class="toc-note"><Icon name="code" size={18} /><span>把终端放在手边。<br />理解，发生在运行之后。</span></div><a href="#samples-title" class="toc-sources">查看本章示例<Icon name="arrow" size={14} /></a></aside>
+  </div>
+</BookLayout>

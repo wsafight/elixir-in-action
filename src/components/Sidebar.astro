@@ -1,0 +1,34 @@
+---
+import Icon from './Icon.astro';
+import { chapters, parts, chapterUrl } from '../lib/book';
+const { pathname } = Astro.url;
+---
+<aside class="sidebar" id="sidebar" aria-label="全书目录">
+  <a class="brand" href="/" aria-label="Elixir 实战手记首页">
+    <img src="/favicon.svg" width="35" height="35" alt="" />
+    <span>Elixir 实战手记<small>从函数到可靠系统</small></span>
+  </a>
+  <button class="search-trigger" data-search-open aria-label="搜索全书">
+    <Icon name="search" size={17} /><span>搜索这本书…</span><kbd>⌘ K</kbd>
+  </button>
+  <nav class="book-nav">
+    <a href="/" class:list={['overview-link', { active: pathname === '/' }]} aria-current={pathname === '/' ? 'page' : undefined}><Icon name="book" size={17} />阅读之前</a>
+    {parts.map(part => (
+      <div class="nav-part">
+        <p><span class={`part-dot ${part.color}`}></span>{part.title}</p>
+        <ol>
+          {chapters.filter(chapter => chapter.part === part.number).map(chapter => (
+            <li><a href={chapterUrl(chapter.slug)} class:list={{ active: pathname === chapterUrl(chapter.slug) }} aria-current={pathname === chapterUrl(chapter.slug) ? 'page' : undefined} data-chapter-link={chapter.slug}>
+              <span class="chapter-number">{String(chapter.order).padStart(2, '0')}</span><span>{chapter.title}</span><span class="chapter-complete" aria-label="已读"></span>
+            </a></li>
+          ))}
+        </ol>
+      </div>
+    ))}
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="reading-progress-label"><span>慢慢读，也是一种进步</span><span data-progress-label>0 / {chapters.length}</span></div>
+    <div class="progress-track"><span data-progress-bar></span></div>
+    <p><span class="live-dot"></span>基于第三版配套源码编写</p>
+  </div>
+</aside>

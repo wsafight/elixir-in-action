@@ -1,0 +1,42 @@
+---
+import BookLayout from '../layouts/BookLayout.astro';
+import BookCover from '../components/BookCover.astro';
+import Icon from '../components/Icon.astro';
+import { chapters, parts, chapterUrl } from '../lib/book';
+const sourceCount = new Set(chapters.flatMap(chapter => chapter.samples.map(sample => sample.path))).size;
+---
+<BookLayout>
+  <div class="home-content">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="edition-note"><span></span>跟着源码，重新认识 Elixir</span>
+        <h1>从一个函数，<br />到一个可靠的系统。</h1>
+        <p class="hero-description">一本对着源码写的 Elixir 学习手记。<br class="desktop-break" />沿着 Todo 项目的演进，读懂函数、并发与 OTP，<br class="desktop-break" />也读懂它们为什么这样设计。</p>
+        <div class="hero-actions"><a class="primary-button" href={chapterUrl(chapters[0].slug)} data-start-reading>开始阅读<Icon name="arrow" size={18} /></a><a href="#contents" class="text-button">看看目录<Icon name="down" size={16} /></a></div>
+        <div class="hero-facts"><span><Icon name="book" size={15} />{chapters.length} 篇原创导读</span><span><Icon name="code" size={16} />{sourceCount} 份源码对照</span><span><span class="fact-language">中</span>中文讲解</span></div>
+      </div>
+      <BookCover />
+    </section>
+
+    <aside class="reading-note"><span class="note-icon"><Icon name="bookmark" size={19} /></span><p><strong>不用急着记住所有语法。</strong>先跑通一个例子，再问一句：如果它失败了，会发生什么？</p><a href={chapterUrl(chapters[0].slug)}>关于这本书<Icon name="arrow" size={15} /></a></aside>
+
+    <section class="contents-section" id="contents" aria-labelledby="contents-title">
+      <div class="section-heading"><div><h2 id="contents-title">一条线，读懂一个系统</h2><p>五个部分，从语言基础走到发布上线。每一章都有能动手运行的代码。</p></div><span class="chapter-total">全 {chapters.length} 章</span></div>
+      <div class="parts-grid">
+        {parts.map(part => (
+          <section class={`part-section ${part.color}`}>
+            <header class="part-heading"><span class="part-icon"><Icon name={part.icon} size={22} /></span><div><span class="part-label">第{['一', '二', '三', '四', '五'][part.number - 1]}部分</span><h3>{part.title}</h3></div></header>
+            <p class="part-description">{part.description}</p>
+            <ol class="chapter-list">{chapters.filter(chapter => chapter.part === part.number).map(chapter => (<li><a href={chapterUrl(chapter.slug)}><span class="list-chapter-number">{String(chapter.order).padStart(2, '0')}</span><span>{chapter.title}</span><Icon name="chevron" size={13} /></a></li>))}</ol>
+          </section>
+        ))}
+      </div>
+    </section>
+
+    <section class="learning-method" aria-labelledby="method-title">
+      <div class="method-copy"><span class="method-mark"><Icon name="code" size={21} /></span><h2 id="method-title">读一遍，不如跑一遍。</h2><p>这本书和仓库里的代码放在一起。<br />每章都有源码入口、能运行的例子和练习题，<br />让概念在终端里变得具体。</p><a href={chapterUrl('01-start-here')} class="method-link">准备好你的开发环境<Icon name="arrow" size={16} /></a></div>
+      <div class="terminal-preview"><div class="terminal-top"><span class="terminal-dots"><i></i><i></i><i></i></span><span>一个小小的开始</span><span>iex</span></div><div class="terminal-body"><p><span class="terminal-prompt">iex&gt;</span> self()</p><p class="terminal-result">#PID&lt;0.108.0&gt;</p><p><span class="terminal-prompt">iex&gt;</span> send(self(), <span class="terminal-string">:hello</span>)</p><p class="terminal-result">:hello</p><p><span class="terminal-prompt">iex&gt;</span> flush()</p><p class="terminal-result">:hello<br />:ok</p><span class="terminal-cursor"></span></div></div>
+    </section>
+    <div class="colophon"><Icon name="book" size={17} /><p>以《Elixir in Action》第三版配套仓库为线索独立编写，不是原书的翻译。<br />建议和原书、和实际运行结果对照着读。</p><span class="colophon-flower">✳</span></div>
+  </div>
+</BookLayout>
