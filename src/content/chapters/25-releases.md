@@ -1,5 +1,5 @@
 ---
-order: 18
+order: 25
 title: 交付一个可以运行的系统
 description: 用 Mix release 打包应用，通过运行时配置与容器明确部署边界。学习的最后一步，是让程序离开开发终端仍能运行。
 part: 4
@@ -61,7 +61,7 @@ _build/prod/rel/todo/bin/todo stop        # 停止后台节点
 _build/prod/rel/todo/bin/todo eval "Todo.Cache.server_process(\"x\")"  # 在运行节点上执行一段代码
 ```
 
-`start`/`daemon` 让应用在后台跑，终端可以做别的事；`start_iex` 适合学习和手动验证，退出 IEx 节点也退；`remote` 是排障入口——它连进已经跑着的节点给你一个 IEx，你查到的 `Node.self()`、监督树、ETS 表都是那个活节点里的，不是新起的进程。`eval` 不挂终端，执行完就返回。
+`start`/`daemon` 让应用在后台跑，终端可以做别的事；`start_iex` 适合学习和手动验证，退出 IEx 节点也退；`remote` 是排障入口，它连进已经跑着的节点给你一个 IEx，你查到的 `Node.self()`、监督树、ETS 表都是那个活节点里的，不是新起的进程。`eval` 不挂终端，执行完就返回。
 
 daemon 模式下确认应用活着的最简单办法：
 
@@ -84,7 +84,7 @@ iex(todo@hostname)1> Application.started_applications() |> Enum.map(&elem(&1, 0)
 
 示例里固定的镜像标签只服务于配套演示，不一定是当前生产环境的推荐版本。实际升级要结合依赖兼容性重新构建和验证。
 
-另外，`mix.exs` 的 `application/0` 里把 `:runtime_tools` 加进了 `extra_applications`，这样 release 里可以跑 `:observer`、`:recon` 之类的运行时工具——前面第 12、13 章用到的观测手段，在 release 里同样能用。
+另外，`mix.exs` 的 `application/0` 里把 `:runtime_tools` 加进了 `extra_applications`，这样 release 里可以跑 `:observer`、`:recon` 之类的运行时工具，第 16、17 章用到的观测手段，在 release 里同样能用。
 
 ## 让配置在启动时进入系统
 
@@ -109,7 +109,7 @@ _build/prod/rel/todo/bin/todo start
 
 `runtime.exs` 的读取发生在每次启动时，不是构建时。同一个 release，换一组环境变量就是另一种配置，不需要重新 `mix release`。
 
-区分环境靠的是 `MIX_ENV`。`mix test` 自动进 `:test`，`iex -S mix` 默认 `:dev`，`MIX_ENV=prod mix release` 进 `:prod`。`config_env()` 在 `runtime.exs` 里返回当前环境，应用据此决定读 `TODO_HTTP_PORT` 还是 `TODO_TEST_HTTP_PORT`——同一文件，三种走法。
+区分环境靠的是 `MIX_ENV`。`mix test` 自动进 `:test`，`iex -S mix` 默认 `:dev`，`MIX_ENV=prod mix release` 进 `:prod`。`config_env()` 在 `runtime.exs` 里返回当前环境，应用据此决定读 `TODO_HTTP_PORT` 还是 `TODO_TEST_HTTP_PORT`，同一文件，三种走法。
 
 数据目录该由部署环境管理，不能只放在随时会被替换的发布目录里。配置改了以后，也要确认应用在哪个启动阶段读取它，而不是假定改环境变量会影响已在运行的进程。
 
@@ -128,7 +128,7 @@ FROM debian:bookworm-slim
 CMD ["/app/bin/todo", "start_iex"]
 ```
 
-第一阶段的镜像里有完整的编译工具链（Elixir、Erlang 编译器、Hex），它只在构建时用；第二阶段从干净的 Debian 起步，只拿走 release 产物——最终镜像里没有 mix、没有源码、没有编译器，体积和安全面都小很多。`COPY --from=builder` 是阶段间传递产物的语法。
+第一阶段的镜像里有完整的编译工具链（Elixir、Erlang 编译器、Hex），它只在构建时用；第二阶段从干净的 Debian 起步，只拿走 release 产物，最终镜像里没有 mix、没有源码、没有编译器，体积和安全面都小很多。`COPY --from=builder` 是阶段间传递产物的语法。
 
 在项目目录运行以下命令，可以在具备 Docker 的本机进行实验：
 
@@ -140,7 +140,7 @@ docker run --rm -it \
   elixir-todo
 ```
 
-示例默认命令是 `start_iex`，所以这里使用交互终端。命名卷用来保留数据目录；实际部署还要明确节点名字与目录命名的关系，因为数据库会在目录下按节点前缀组织文件——上一个例子中节点名一旦变化，原先 `persist/<node>/` 下的文件就读不到了。
+示例默认命令是 `start_iex`，所以这里使用交互终端。命名卷用来保留数据目录；实际部署还要明确节点名字与目录命名的关系，因为数据库会在目录下按节点前缀组织文件：上一个例子中节点名一旦变化，原先 `persist/<node>/` 下的文件就读不到了。
 
 容器可以重建，数据不行。发布产物随时能再生成，用户数据则需要自己的保存和备份策略。
 

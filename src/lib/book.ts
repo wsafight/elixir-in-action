@@ -33,7 +33,7 @@ export const parts = [
   { number: 2, title: '让程序并发起来', description: '把状态交给进程，用消息把它们连起来。', icon: 'process', color: 'blue' },
   { number: 3, title: '让系统可靠运行', description: '接受失败，把恢复设计进系统。', icon: 'tree', color: 'green' },
   { number: 4, title: '从本地走向生产', description: '连接网络、跨越节点，交付一个应用。', icon: 'deploy', color: 'orange' },
-  { number: 5, title: '回头看整个系统', description: '把十九个零件拼成一个整体。', icon: 'tree', color: 'violet' },
+  { number: 5, title: '回头看整个系统', description: '把二十七个零件拼成一个整体。', icon: 'tree', color: 'violet' },
 ] as const;
 
 export const repository = 'https://github.com/wsafight/elixir-in-action';

@@ -1,5 +1,5 @@
 ---
-order: 17
+order: 24
 title: 当系统跨越一个节点
 description: 连接两个 BEAM 节点，理解全局名字、跨节点写入与确认承诺。连得上只是起点，失败和一致性才是分布式的日常问题。
 part: 4
@@ -47,20 +47,20 @@ iex(todo1@your-host)4> Node.list([:this, :visible])
 [:"todo1@your-host", :"todo2@your-host"]
 ```
 
-注意 IEx 提示符本身变成了 `iex(todo1@your-host)`——节点名已经烙进提示符里。`Node.self()` 返回当前节点的完整名字；`Node.connect` 成功返回 `true`；`Node.list()` 只列"别的"已连接节点，不含自己。连接是自动传递的：A 连上 B，B 也就出现在 A 的 `Node.list()` 中。
+注意 IEx 提示符本身变成了 `iex(todo1@your-host)`，节点名已经烙进提示符里。`Node.self()` 返回当前节点的完整名字；`Node.connect` 成功返回 `true`；`Node.list()` 只列"别的"已连接节点，不含自己。连接是自动传递的：A 连上 B，B 也就出现在 A 的 `Node.list()` 中。
 
 请用 `Node.self()` 观察到的真实主机名替换 `your-host`。如果 `Node.connect` 返回 `false`，先检查三件事：两个节点的 cookie 是否完全一致；是否一个用了 `--sname` 而另一个用了 `--name`（短名字和长名字模式不能互通）；主机名是否解析得到。跨机器实验时，还要确认两个节点在同一网络里，防火墙没有挡住 Erlang 端口映射服务。
 
 ## 远端消息仍然经过进程
 
-要在远端节点做点事，最直接的是 `Node.spawn_link`——指定节点名和一个函数，它先连上那个节点，再让对方跑这个函数，返回一个挂在远端节点上的 PID：
+要在远端节点做点事，最直接的是 `Node.spawn_link`：指定节点名和一个函数，它先连上那个节点，再让对方跑这个函数，返回一个挂在远端节点上的 PID：
 
 ```elixir
 pid = Node.spawn_link(:"todo2@your-host", fn -> IO.puts("hi") end)
 send(pid, :some_message)
 ```
 
-`Node.spawn_link` 返回的 PID 挂在远端节点上，`node(pid)` 能看到它属于哪个节点。它适合做实验，不适合做正式通信——`spawn_link` 出来的进程不归任何监督者管，link 跨了节点也只能在"整个远端节点死掉"时通知你。
+`Node.spawn_link` 返回的 PID 挂在远端节点上，`node(pid)` 能看到它属于哪个节点。它适合做实验，不适合做正式通信：`spawn_link` 出来的进程不归任何监督者管，link 跨了节点也只能在"整个远端节点死掉"时通知你。
 
 另一个更常用的工具是 `:rpc.call`：在远端节点执行一个函数并把结果带回来，相当于一次同步的远程函数调用：
 
@@ -75,7 +75,7 @@ iex(todo1@your-host)> :rpc.call(:"todo2@your-host", File, :cwd, [])
 
 更常规的路线是：进程在远端由监督树正常启动，本地只拿 PID 发消息。一旦拿到远端 PID，`send` 和 `GenServer.call` 的写法和本节点完全一样，只是多了一个网络跳数。
 
-注册名字跨节点用 `:global`：`GenServer.start_link(__MODULE__, arg, name: {:global, {__MODULE__, name}})` 在整个连通集群里唯一。`:global.whereis_name/1` 从任意节点都能查回同一个 PID——它背后是一次集群范围的查找，比本地 `Process.whereis` 慢，但在"谁负责这个清单"这个问题上给出唯一答案。本示例的 Todo.Server 走的就是这条路——下一节看代码。
+注册名字跨节点用 `:global`：`GenServer.start_link(__MODULE__, arg, name: {:global, {__MODULE__, name}})` 在整个连通集群里唯一。`:global.whereis_name/1` 从任意节点都能查回同一个 PID，它背后是一次集群范围的查找，比本地 `Process.whereis` 慢，但在"谁负责这个清单"这个问题上给出唯一答案。本示例的 Todo.Server 走的就是这条路，下一节看代码。
 
 在连通的节点之间，`GenServer.call` 也能跨过节点边界。但网络传输、目标节点存活和调用超时，都会成为通信成本与失败来源。
 

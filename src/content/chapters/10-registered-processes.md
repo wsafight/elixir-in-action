@@ -1,5 +1,5 @@
 ---
-order: 8
+order: 10
 title: 给进程起名字
 description: 从传 PID 到注册名字。比较 atom 注册、Registry 和两种手写注册表的实现代价。
 part: 2
@@ -28,7 +28,7 @@ end)
 
 `Process.register(self(), :todo_server)` 把当前进程的 PID 和 atom `:todo_server` 绑进 VM 的全局名字表。登记完，任何进程拿这个 atom 就能发消息，不需要先知道 PID。这一步必须在新进程里做（`spawn` 的 `fn` 里调 `self()` 拿到的才是新进程的 PID）。
 
-客户端 API 跟着变了——参数列表里没有 PID 了：
+客户端 API 跟着变了，参数列表里没有 PID 了：
 
 ```elixir
 def add_entry(new_entry) do
@@ -52,7 +52,7 @@ end
 
 代价也直接：名字是 atom，全 VM 一张表，**一个名字同一时刻只能绑定一个进程**。再 `Process.register(self(), :todo_server)` 会抛 `ArgumentError`。想跑两个清单服务，就得想别的命名办法。
 
-另外，atom 表不回收。用 `String.to_atom("user_123")` 给每个用户动态起名，等于写了一张只进不出的表——动态名字要走 `String.to_existing_atom`，或者干脆别用 atom。
+另外，atom 表不回收。用 `String.to_atom("user_123")` 给每个用户动态起名，等于写了一张只进不出的表，动态名字要走 `String.to_existing_atom`，或者干脆别用 atom。
 
 ## via 元组：把查名字交给注册表
 
@@ -62,7 +62,7 @@ OTP 不强迫你用 atom。`GenServer.start` 和 `call/cast` 都接受 `{:via, r
 {:via, Registry, {Todo.ProcessRegistry, "alice"}}
 ```
 
-读这个三元组：`:via` 是固定标签，告诉 OTP"别直接找 PID，走注册表"；`Registry` 是注册表模块（Elixir 自带）；`{Todo.ProcessRegistry, "alice"}` 是"在哪个注册表里、用什么 key 查"——`Todo.ProcessRegistry` 是某个 Registry 进程自己的名字，`"alice"` 是这次要解析的业务 key。每次调用都现查一次，所以 key 可以是任意 Elixir 项，不限 atom。
+读这个三元组：`:via` 是固定标签，告诉 OTP"别直接找 PID，走注册表"；`Registry` 是注册表模块（Elixir 自带）；`{Todo.ProcessRegistry, "alice"}` 是"在哪个注册表里、用什么 key 查"，`Todo.ProcessRegistry` 是某个 Registry 进程自己的名字，`"alice"` 是这次要解析的业务 key。每次调用都现查一次，所以 key 可以是任意 Elixir 项，不限 atom。
 
 `Registry` 是 Elixir 自带的本地注册表，本身也是一个 GenServer，底层表就是 ETS。启动时传 `keys: :unique` 保证一个 key 只对应一个进程（也有 `:duplicate` 模式允许一对多）。进程侧用 via 注册：
 
@@ -71,7 +71,7 @@ GenServer.start_link(Todo.Server, "alice",
   name: {:via, Registry, {Todo.ProcessRegistry, "alice"}})
 ```
 
-`name:` 参数告诉 OTP 启动成功后往哪儿登记。之后 `GenServer.call({:via, Registry, {Todo.ProcessRegistry, "alice"}}, ...)` 就能找到它——进程重启拿到新 PID，调用者无感。这就是第 9 章和第 11 章项目里"清单名 → 进程"的真正实现，这里先看它背后的机制。
+`name:` 参数告诉 OTP 启动成功后往哪儿登记。之后 `GenServer.call({:via, Registry, {Todo.ProcessRegistry, "alice"}}, ...)` 就能找到它，进程重启拿到新 PID，调用者无感。这就是第 12 章和第 14 章项目里"清单名 → 进程"的真正实现，这里先看它背后的机制。
 
 ## 自己写一个：GenServer 版注册表
 
@@ -90,9 +90,9 @@ def handle_call({:register, key, pid}, _, process_registry) do
 end
 ```
 
-这个回调跑的是"查重 + 占位"两步：key 还没被占（`Map.get` 返回 `nil`），先 `Process.link(pid)` 和新进程建链，再 `Map.put` 把 `key => pid` 塞进注册表，回 `:ok`；key 已存在就回 `:error`——不重试、不覆盖，一人一个名字。
+这个回调跑的是"查重 + 占位"两步：key 还没被占（`Map.get` 返回 `nil`），先 `Process.link(pid)` 和新进程建链，再 `Map.put` 把 `key => pid` 塞进注册表，回 `:ok`；key 已存在就回 `:error`，不重试、不覆盖，一人一个名字。
 
-关键在于垃圾回收。`init` 里有一行 `Process.flag(:trap_exit, true)`——默认情况下进程收到退出信号会跟着死，`trap_exit` 让信号变成一条普通消息 `{:EXIT, pid, reason}` 进邮箱。注册成功后 `Process.link(pid)` 建链，被注册进程一死，注册表就收到 `{:EXIT, pid, reason}`，`handle_info` 里把所有指向这个 PID 的条目删掉。不清理的话，名字会指向一个死进程——第 10 章会专门讨论这种"缓存里躺着死 PID"的事故。
+关键在于垃圾回收。`init` 里有一行 `Process.flag(:trap_exit, true)`，默认情况下进程收到退出信号会跟着死，`trap_exit` 让信号变成一条普通消息 `{:EXIT, pid, reason}` 进邮箱。注册成功后 `Process.link(pid)` 建链，被注册进程一死，注册表就收到 `{:EXIT, pid, reason}`，`handle_info` 里把所有指向这个 PID 的条目删掉。不清理的话，名字会指向一个死进程，第 13 章会专门讨论这种"缓存里躺着死 PID"的事故。
 
 `handle_info` 是第三个回调类型：`handle_call`/`handle_cast` 之外的"没走 GenServer 协议"的消息（退出信号、超时、`send` 直发的消息）都由它接住。`SimpleRegistry` 里它只匹配一种：
 
@@ -118,7 +118,7 @@ def init(_) do
 end
 ```
 
-`init` 里建表：`:ets.new/2` 创建一张 ETS 表，第一个参数是表名（直接用模块名），第二个参数是选项列表：`:named_table` 让表能用名字引用、`:public` 允许任何进程读写（不写 `:protected`）、两个 `*_concurrency` 是给 VM 的并发提示。ETS 是 VM 内置的内存键值表，不属于任何单个进程的状态——表挂在进程上，但访问不经过进程邮箱，这是它和 map 版本最大的区别。
+`init` 里建表：`:ets.new/2` 创建一张 ETS 表，第一个参数是表名（直接用模块名），第二个参数是选项列表：`:named_table` 让表能用名字引用、`:public` 允许任何进程读写（不写 `:protected`）、两个 `*_concurrency` 是给 VM 的并发提示。ETS 是 VM 内置的内存键值表，不属于任何单个进程的状态，表挂在进程上，但访问不经过进程邮箱，这是它和 map 版本最大的区别。
 
 ```elixir
 def register(key) do
@@ -144,11 +144,11 @@ end
 两处细节值得盯住：
 
 - `insert_new` 只在 key 不存在时插入，一步完成"查重 + 占位"，避免两个进程同时注册同一个名字的竞态；
-- `register` 里先 `Process.link` 再插入——如果顺序反过来，一个进程可能注册成功但注册表不知道它的存在，死后留下孤儿条目。
+- `register` 里先 `Process.link` 再插入，如果顺序反过来，一个进程可能注册成功但注册表不知道它的存在，死后留下孤儿条目。
 
-清理还是走 `handle_info({:EXIT, pid, _})`——注册表服务器仍然开着 `trap_exit` 收退出消息，但删条目的方式换成了 `:ets.match_delete(__MODULE__, {:_, pid})`：按模式反查删除，`:_` 是"任意 key"，`pid` 是值的部分。
+清理还是走 `handle_info({:EXIT, pid, _})`，注册表服务器仍然开着 `trap_exit` 收退出消息，但删条目的方式换成了 `:ets.match_delete(__MODULE__, {:_, pid})`：按模式反查删除，`:_` 是"任意 key"，`pid` 是值的部分。
 
-代价同样写在了源码注释里：这个版本没有处理"一个进程注册多个名字"的情况，unlink 逻辑也省略了——作者留了 Registry 官方实现的链接，说明这是教学版，不是完整版。
+代价同样写在了源码注释里：这个版本没有处理"一个进程注册多个名字"的情况，unlink 逻辑也省略了，作者留了 Registry 官方实现的链接，说明这是教学版，不是完整版。
 
 ## 三个层级的取舍
 
@@ -156,11 +156,11 @@ end
 | --- | --- | --- | --- |
 | `Process.register` + atom | 全 VM 唯一 | 直接发消息 | 一个名字一个进程；atom 不回收 |
 | `Registry` + via | 全 VM，按 key | 每次调用查一次 ETS | 单节点；依赖 Registry 自身存活 |
-| `:global` | 跨节点 | 跨节点同步 | 第 17 章专门讲 |
+| `:global` | 跨节点 | 跨节点同步 | 第 24 章专门讲 |
 
-本地服务优先考虑 atom 或 `Registry`。只有确实要跨节点解析，才上 `:global`——下一章会再遇到它。
+本地服务优先考虑 atom 或 `Registry`。只有确实要跨节点解析，才上 `:global`，下一章会再遇到它。
 
-插一句背景，免得名字和职责混起来：这一章讲的是"怎么找到进程"，OTP 还内置了两种"进程本身是什么"的现成选择——`Task` 管一段一次性工作，`Agent` 管一份只被读写的状态。它们本质上都是包好的 GenServer，第 12 章会展开；注册和 `via` 对它们同样适用。
+插一句背景，免得名字和职责混起来：这一章讲的是"怎么找到进程"，OTP 还内置了两种"进程本身是什么"的现成选择，`Task` 管一段一次性工作，`Agent` 管一份只被读写的状态。它们本质上都是包好的 GenServer，第 16 章会展开；注册和 `via` 对它们同样适用。
 
 ## 动手验证
 
@@ -181,8 +181,8 @@ iex> TodoServer.start()
 ** (EXIT from #PID<0.109.0>) shell process exited with reason: {:already_registered, #PID<0.112.0>}
 ```
 
-`TodoServer.start()` 返回的还是 PID，但 `whereis` 现在能拿名字反查回同一个 PID。`add_entry`/`entries` 的调用不再传 PID——名字在模块里写死了。第二次 `start` 直接撞死：`:already_registered` 就是"一个名字一个进程"的冲突，实验里三秒撞上。
+`TodoServer.start()` 返回的还是 PID，但 `whereis` 现在能拿名字反查回同一个 PID。`add_entry`/`entries` 的调用不再传 PID，名字在模块里写死了。第二次 `start` 直接撞死：`:already_registered` 就是"一个名字一个进程"的冲突，实验里三秒撞上。
 
-`Process.registered()` 会列出当前节点所有已注册 atom——除了 `:todo_server`，你还能看到 `IEx` 自己的几个内置注册名。
+`Process.registered()` 会列出当前节点所有已注册 atom，除了 `:todo_server`，你还能看到 `IEx` 自己的几个内置注册名。
 
-**练习**：写一个测试同时 `spawn` 两个 `registered_todo_server.ex` 里的 `start/0`，观察第二个 `Process.register` 抛什么错。再想：如果注册表进程本身崩了（比如 `Process.exit(Process.whereis(:todo_server), :kill)`），`whereis` 会返回什么？名字和还存活的业务进程之间，谁来负责重建对应关系？这个问题会在第 11 章的监督结构里得到完整答案。
+**练习**：写一个测试同时 `spawn` 两个 `registered_todo_server.ex` 里的 `start/0`，观察第二个 `Process.register` 抛什么错。再想：如果注册表进程本身崩了（比如 `Process.exit(Process.whereis(:todo_server), :kill)`），`whereis` 会返回什么？名字和还存活的业务进程之间，谁来负责重建对应关系？这个问题会在第 15 章的监督结构里得到完整答案。

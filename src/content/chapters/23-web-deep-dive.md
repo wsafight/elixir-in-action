@@ -1,5 +1,5 @@
 ---
-order: 16
+order: 23
 title: HTTP 边界往里再走一层
 description: 拆开 Plug.Router 的 match 和 dispatch，给缺参数、坏日期一个体面的 400，再用 Plug.Test 把路由测试补齐。
 part: 4
@@ -28,7 +28,7 @@ def call(conn, _opts) do
 end
 ```
 
-监督树启动时调 `init` 一次；每次请求进来调 `call`。`Plug.Test` 测的就是这个 `call/2`——它不看网络，只看函数返回值，所以测试里 `Todo.Web.call(conn, Todo.Web.init([]))` 就能复现 Cowboy 的请求路径。
+监督树启动时调 `init` 一次；每次请求进来调 `call`。`Plug.Test` 测的就是这个 `call/2`：它不看网络，只看函数返回值，所以测试里 `Todo.Web.call(conn, Todo.Web.init([]))` 就能复现 Cowboy 的请求路径。
 
 ## match 和 dispatch 在做什么
 
@@ -39,7 +39,7 @@ plug(:dispatch)
 
 每个进来的 `Plug.Conn` 先过 `match`：按方法和路径找下面定义的某个 `get`/`post`/`match` 块，把命中的那个记进 conn。再过 `dispatch`：真正执行那块代码，发送响应。
 
-这个两段式意味着路由可以有副作用也可以在中间被改写——`match` 之后、`dispatch` 之前插一个 plug，就能拿到"将要去哪个路由"的信息。示例没用到，但这是 Plug.Router 比"一串 if-else"多一点的地方。
+这个两段式意味着路由可以有副作用也可以在中间被改写：`match` 之后、`dispatch` 之前插一个 plug，就能拿到"将要去哪个路由"的信息。示例没用到，但这是 Plug.Router 比"一串 if-else"多一点的地方。
 
 plug 是按声明顺序串起来的管道，位置不同效果不同。日志 plug 放最前，`Plug.Parsers` 要在需要 `conn.body_params` 的路由之前，自己写的校验 plug 放在 `match` 之前，就能先挡掉不合法请求再走匹配：
 
@@ -107,9 +107,9 @@ post "/add_entry" do
 end
 ```
 
-`with` 把四个可能失败的步骤串起来，任何一个返回 `:error` 或不匹配，就进 `else` 分支回 400。这是第 4 章练过的写法，现在它出现在一个真实的 HTTP 边界上。
+`with` 把四个可能失败的步骤串起来，任何一个返回 `:error` 或不匹配，就进 `else` 分支回 400。这是第 4 章练过的写法（第 5 章补了 `{:error, _}` 的约定），现在它出现在一个真实的 HTTP 边界上。
 
-这不是配套示例里的代码——是一个教学改动，演示路由层怎么把"可预期的坏请求"和"内部异常"分开。
+这不是配套示例里的代码，是一个教学改动，演示路由层怎么把"可预期的坏请求"和"内部异常"分开。
 
 ## add_entry 的 200 不承诺持久化
 
@@ -121,15 +121,15 @@ list_name
 send_resp(conn, 200, "OK")
 ```
 
-`Todo.Server.add_entry` 是 `GenServer.cast`——消息进邮箱就返回 `:ok`。HTTP 层立刻回 200，此时 Todo.Server 可能还没处理到这条消息，更别提 `Todo.Database.store` 那次 cast 有没有走到文件。
+`Todo.Server.add_entry` 是 `GenServer.cast`：消息进邮箱就返回 `:ok`。HTTP 层立刻回 200，此时 Todo.Server 可能还没处理到这条消息，更别提 `Todo.Database.store` 那次 cast 有没有走到文件。
 
 如果客户端把 200 当作"数据已保存"，它会读到旧数据。示例用返回体 `"OK"` 也表达了同样的事：它只承诺"请求被收下了"，不承诺"写完了"。
 
-要让 200 真的有分量，得把 `add_entry` 改成 `GenServer.call`，让 Todo.Server 在落盘之后回复——这是第 17 章 `todo_distributed` 里已经做过的改动，可以对照着看。
+要让 200 真的有分量，得把 `add_entry` 改成 `GenServer.call`，让 Todo.Server 在落盘之后回复，这是第 24 章 `todo_distributed` 里已经做过的改动，可以对照着看。
 
 ## Plug.Test：不开端口测路由
 
-todo_web 的 `test/http_server_test.exs` 复用了第 14 章介绍的思路：
+todo_web 的 `test/http_server_test.exs` 复用了第 19 章介绍的思路：
 
 ```elixir
 defmodule HttpServerTest do
@@ -149,7 +149,7 @@ defmodule HttpServerTest do
 end
 ```
 
-`conn(:get, path)` 构造一个完整的 `Plug.Conn` 结构，方法、路径、host 都齐了。`Todo.Web.call/2` 是 Plug.Router 的入口函数，和 Cowboy 收到真实请求时调的是同一个——只是绕过了网络层。
+`conn(:get, path)` 构造一个完整的 `Plug.Conn` 结构，方法、路径、host 都齐了。`Todo.Web.call/2` 是 Plug.Router 的入口函数，和 Cowboy 收到真实请求时调的是同一个，只是绕过了网络层。
 
 在 IEx 里手动走一遍这条路更直观（项目根下 `iex -S mix`）：
 
@@ -162,7 +162,7 @@ iex> resp.resp_body
 ""
 ```
 
-`conn/3` 返回的 `Plug.Conn` 里 `params` 还是 `%Plug.Conn.Unfetched{}`——"还没解析"的占位值，正好解释了为什么路由里必须先调 `fetch_query_params`。`call/2` 回来后 `state` 变成 `:sent`，`status` 和 `resp_body` 就是测试里断言的两个字段；空清单时 body 是空字符串。
+`conn/3` 返回的 `Plug.Conn` 里 `params` 还是 `%Plug.Conn.Unfetched{}`，"还没解析"的占位值，正好解释了为什么路由里必须先调 `fetch_query_params`。`call/2` 回来后 `state` 变成 `:sent`，`status` 和 `resp_body` 就是测试里断言的两个字段；空清单时 body 是空字符串。
 
 这让测试跑得快，也让断言落在边界上：测的是"这个 Plug 对这样的 conn 返回什么"，不是"端口能不能连"。
 
@@ -176,9 +176,9 @@ conn
 |> Plug.Conn.send_resp(200, formatted_entries)
 ```
 
-两行响应头看着像装饰，实际上决定了客户端怎么解释 body。`/entries` 回 `text/plain`，curl 直接打印；"OK" 也是 `text/plain`。如果哪天想换成 JSON，客户端会按 `application/json` 来解——这时不只是改 `send_resp` 的字符串，还得把 `put_resp_content_type` 换掉，并想好日期、标题的转义方式。
+两行响应头看着像装饰，实际上决定了客户端怎么解释 body。`/entries` 回 `text/plain`，curl 直接打印；"OK" 也是 `text/plain`。如果哪天想换成 JSON，客户端会按 `application/json` 来解，这时不只是改 `send_resp` 的字符串，还得把 `put_resp_content_type` 换掉，并想好日期、标题的转义方式。
 
-响应体的拼装也在路由里：`Enum.map(&"#{&1.date} #{&1.title}")` 加 `Enum.join("\n")`，把条目压成一行一条的纯文本。格式简单是教学选择，不是协议约束——换成 JSON 数组，这个函数就变成序列化器了。
+响应体的拼装也在路由里：`Enum.map(&"#{&1.date} #{&1.title}")` 加 `Enum.join("\n")`，把条目压成一行一条的纯文本。格式简单是教学选择，不是协议约束；换成 JSON 数组，这个函数就变成序列化器了。
 
 ## 一个能落地的练习
 
@@ -209,6 +209,6 @@ curl -i 'http://localhost:5454/add_entry?list=x'
 curl -i 'http://localhost:5454/nonexistent'
 ```
 
-看状态码分别是 500、500、404。然后照上面的 `with` 版本改路由，重启，再发一遍——前两个应变成 400。
+看状态码分别是 500、500、404。然后照上面的 `with` 版本改路由，重启，再发一遍，前两个应变成 400。
 
 **练习**：给 `GET /entries` 的 `date` 也换成 `Date.from_iso8601` + 400。再想一步：如果产品要 JSON API，`Todo.Web` 需要加哪几样东西？（提示：`Plug.Parsers`、一个 JSON 库、`conn.body_params` 代替 `conn.params`。）列出改动清单，先不实现。

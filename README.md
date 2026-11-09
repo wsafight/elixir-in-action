@@ -2,7 +2,7 @@ This branch contains the accompanying code for Elixir in Action, Third Edition.
 
 ## Elixir 实战手记
 
-本仓库新增了一本用 Astro 构建的中文源码学习书。19 章导读分五个部分，沿着函数、Todo 数据结构、进程、OTP、监督树、分布式与发布展开，包含运行示例、边界分析、练习和仓库的源码对照页。正文位于 `src/content/chapters/`，原有 Elixir 示例保留在 `code_samples/`。
+本仓库新增了一本用 Astro 构建的中文源码学习书。27 章导读分五个部分，沿着函数、Todo 数据结构、进程、OTP、监督树、分布式与发布展开，包含运行示例、边界分析、练习和仓库的源码对照页。正文位于 `src/content/chapters/`，原有 Elixir 示例保留在 `code_samples/`。
 
 网站使用 Node.js 22.12 或更高版本，与下方 Elixir 示例的运行环境相互独立。
 

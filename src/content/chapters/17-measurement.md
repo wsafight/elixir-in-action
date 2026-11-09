@@ -1,5 +1,5 @@
 ---
-order: 13
+order: 17
 title: 用数字说话
 description: 用 :timer.tc 和一个并发压测器比较 GenServer 与 ETS 的吞吐。测量值要经得起追问，结论才站得住。
 part: 3
@@ -16,7 +16,7 @@ samples:
 
 ## 先把计时单位弄明白
 
-BEAM 里最基础的测量函数是 `:timer.tc`，它包住一个函数，返回 `{microseconds, result}`——**微秒**，不是毫秒：
+BEAM 里最基础的测量函数是 `:timer.tc`，它包住一个函数，返回 `{microseconds, result}`，**微秒**，不是毫秒：
 
 ```elixir
 iex> :timer.tc(fn -> Process.sleep(1000) end)
@@ -29,7 +29,7 @@ iex> :timer.tc(fn -> Process.sleep(1000) end)
 throughput = round(1_000_000 * total_operations / time)
 ```
 
-前面 `1_000_000` 把微秒折算回秒，`total_operations` 是所有进程做完的 `put` 加 `get` 总和。别拿这个时间直接当结论——它只说明被测段花了多久，还得看规模。
+前面 `1_000_000` 把微秒折算回秒，`total_operations` 是所有进程做完的 `put` 加 `get` 总和。别拿这个时间直接当结论，它只说明被测段花了多久，还得看规模。
 
 ## bench.ex 的两层结构
 
@@ -43,7 +43,7 @@ throughput = round(1_000_000 * total_operations / time)
 |> Enum.map(&Task.await(&1, :infinity))
 ```
 
-`0..(concurrency - 1)` 起多少个数字，就起多少个 `Task.async` 进程，每个进程领一段互不重叠的 key 区间。`Task.await(&1, :infinity)` 把这一批进程全部收齐才往下走——没有这一步，计时会在进程还没跑完时就结束。
+`0..(concurrency - 1)` 起多少个数字，就起多少个 `Task.async` 进程，每个进程领一段互不重叠的 key 区间。`Task.await(&1, :infinity)` 把这一批进程全部收齐才往下走，没有这一步，计时会在进程还没跑完时就结束。
 
 内层是实际压测的循环：
 
@@ -101,7 +101,7 @@ bench.ex 已经替你挡掉了几个坑：key 区间不重叠（不会把锁竞�
 
 ## 排队的延迟不是吞吐
 
-回到第 6 章的 `process_bottleneck.ex`：一个每秒睡一秒的循环，接再多请求，吞吐也锁死在一秒一个。但它的响应时间可能远差于一秒——后面的请求在邮箱里排着队。
+回到第 7 章的 `process_bottleneck.ex`：一个每秒睡一秒的循环，接再多请求，吞吐也锁死在一秒一个。但它的响应时间可能远差于一秒：后面的请求在邮箱里排着队。
 
 ```elixir
 receive do
@@ -133,7 +133,7 @@ test "ets key value" do
 end
 ```
 
-功能层面两者完全等价——`put` 后 `get` 都能拿到值。差别只出现在压测的那组数字里。
+功能层面两者完全等价：`put` 后 `get` 都能拿到值。差别只出现在压测的那组数字里。
 
 这也解释了为什么 `key_value` 项目把两种实现放在一起：API 一模一样，调用方无感知，性能特性天差地别。换实现的成本是"要不要改部署和监督关系"，不是"要不要改业务代码"。
 
@@ -164,7 +164,7 @@ Bench.run(EtsKeyValue, concurrency: 32)
 
 ## 手写 bench 之外还有库
 
-`bench.ex` 是把测量逻辑手写了一遍。同样的活交给 Benchee 库会更省事——它替你处理预热、多轮取统计量、偏差报告，输出也更规整：
+`bench.ex` 是把测量逻辑手写了一遍。同样的活交给 Benchee 库会更省事，它替你处理预热、多轮取统计量、偏差报告，输出也更规整：
 
 ```elixir
 Benchee.run(%{
@@ -185,12 +185,12 @@ ets kv         8.42 K
 process kv     0.14 K - 59.24x slower
 ```
 
-列的含义：`ips` 是每秒调用次数，越高越好；`average`/`median` 是单次调用的平均/中位耗时；`deviation` 是标准差百分比，越大说明抖动越厉害；`99th %` 是最慢的那 1% 调用的耗时——平均好看但 99 百分位差很多时，说明尾部延迟比想象严重。
+列的含义：`ips` 是每秒调用次数，越高越好；`average`/`median` 是单次调用的平均/中位耗时；`deviation` 是标准差百分比，越大说明抖动越厉害；`99th %` 是最慢的那 1% 调用的耗时；平均好看但 99 百分位差很多时，说明尾部延迟比想象严重。
 
 输出自带 warmup 轮（默认 2 秒）先热身，再计时 5 秒取统计量，正好踩中我们前面说的预热坑。
 
 这个例子的跑法很简单：`mix.exs` 的 `deps` 加 `{:benchee, "~> 1.0", only: :dev}`，`mix deps.get`，然后把上面这段写进 `benchmark.exs`，`mix run` 就行。`only: :dev` 把它留在开发环境，不打进 release。
 
-手写 bench 没有白写——它教会你"什么算进时间、什么不算"，这是读懂任何 benchmark 输出的前提。库只是把这个想法做扎实了。
+手写 bench 没有白写，它教会你"什么算进时间、什么不算"，这是读懂任何 benchmark 输出的前提。库只是把这个想法做扎实了。
 
 **练习**：改 bench.ex，让每个进程只读写同一个 key（把区间改成 `start_item` 一个值）。这时 `EtsKeyValue` 还能随并发提升吗？再改一半进程只 `get`、一半只 `put`，看读写分离会不会改变曲线的形状。
