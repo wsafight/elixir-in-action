@@ -1,18 +1,19 @@
 ---
 import Icon from './Icon.astro';
-import { chapters, parts, chapterUrl } from '../lib/book';
+import { chapters, parts, chapterUrl, homeUrl, withBase } from '../lib/book';
+const home = homeUrl();
 const { pathname } = Astro.url;
 ---
 <aside class="sidebar" id="sidebar" aria-label="全书目录">
-  <a class="brand" href="/" aria-label="Elixir 实战手记首页">
-    <img src="/favicon.svg" width="35" height="35" alt="" />
+  <a class="brand" href={home} aria-label="Elixir 实战手记首页">
+    <img src={withBase('favicon.svg')} width="35" height="35" alt="" />
     <span>Elixir 实战手记<small>从函数到可靠系统</small></span>
   </a>
   <button class="search-trigger" data-search-open aria-label="搜索全书">
     <Icon name="search" size={17} /><span>搜索这本书…</span><kbd>⌘ K</kbd>
   </button>
   <nav class="book-nav">
-    <a href="/" class:list={['overview-link', { active: pathname === '/' }]} aria-current={pathname === '/' ? 'page' : undefined}><Icon name="book" size={17} />阅读之前</a>
+    <a href={home} class:list={['overview-link', { active: pathname === home }]} aria-current={pathname === home ? 'page' : undefined}><Icon name="book" size={17} />阅读之前</a>
     {parts.map(part => (
       <div class="nav-part">
         <p><span class={`part-dot ${part.color}`}></span>{part.title}</p>
@@ -32,3 +33,26 @@ const { pathname } = Astro.url;
     <p><span class="live-dot"></span>基于第三版配套源码编写</p>
   </div>
 </aside>
+<script is:inline>
+  (() => {
+    const nav = document.querySelector('.book-nav');
+    if (!nav) return;
+
+    let saved = null;
+    try { saved = sessionStorage.getItem('elixir-nav-scroll'); } catch {}
+    if (saved !== null) {
+      nav.scrollTop = Number(saved) || 0;
+      return;
+    }
+
+    const active = nav.querySelector('a.active');
+    if (!active) return;
+    const navBounds = nav.getBoundingClientRect();
+    const activeBounds = active.getBoundingClientRect();
+    if (activeBounds.top < navBounds.top) {
+      nav.scrollTop += activeBounds.top - navBounds.top;
+    } else if (activeBounds.bottom > navBounds.bottom) {
+      nav.scrollTop += activeBounds.bottom - navBounds.bottom;
+    }
+  })();
+</script>

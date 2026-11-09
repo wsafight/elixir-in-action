@@ -38,7 +38,7 @@ _build/prod/rel/todo/
 ├── bin/
 │   ├── todo          # 启动脚本
 │   └── todo.bat
-├── erts-15.x/        # 内嵌的 Erlang 运行时
+├── erts-17.x/        # 内嵌的 Erlang 运行时
 ├── lib/              # 应用与各依赖的 .beam 文件
 ├── releases/
 │   ├── 0.1.0/        # 本次 release 的启动脚本与 sys.config

@@ -28,7 +28,7 @@ samples:
 | 4. `Todo.List.add_entry` | `Todo.List` · 清单进程内 | 纯函数，算出新的 `%Todo.List{}` | 同步（同一进程内） | 异常：回调崩溃，进程重启 |
 | 5. `Todo.Database.store` | `Todo.Database` · 清单进程内 | `:rpc.multicall` 把 `store_local` 发到所有已知节点 | 同步（5s 超时） | `bad_nodes` 只打日志，不影响返回 `:ok` |
 | 6. `store_local` → poolboy | `Todo.DatabaseWorker` · **借出的 worker 进程** | `Todo.DatabaseWorker.store` 是一个 `call`，借池执行 | 同步 `call` | worker 崩溃：这次借用的调用失败，回调异常 |
-| 7. `File.write!` | `:file` · worker 进程内 | 写 `./persist/<node>/alice` | 同步 | 磁盘错误：异常向上，回调崩溃 |
+| 7. `File.write!` + `File.rename!` | `:file` · worker 进程内 | 写 `./persist/<node>/alice` | 同步 | 磁盘错误：异常向上，回调崩溃 |
 
 数一遍进程边界：请求在 Cowboy 的连接进程里出生，跨进清单进程（第 3 跳），再跨进一个借出的 worker（第 6 跳），还可能跨节点（第 3、5 跳）。七跳里只有三次真正换了进程，其余只是函数调用。第 2 跳里，新建进程是被访问触发的——`Todo.Server` 配 `restart: :temporary`，监督者不会自动拉起退出的清单，只有下一次 `server_process` 才会重建它。第 3、5、6 跳都是同步 `call`，意味着一路上任何一环卡住，Cowboy 连接都在等，默认超时是 5 秒，不是 HTTP 层的某个时限。
 
@@ -51,7 +51,7 @@ PID 前面的大于 0 的段号（`18337`）说明这是远端进程的引用，
 
 把链路上最常见的两种断法走一遍，比记住表更有用。
 
-**清单进程在第 3 跳后崩溃**（比如在 `handle_call` 里抛了异常）：`GenServer.call` 的调用方——Cowboy 连接进程——收到 exit 信号一起退出，HTTP 返回 500。`restart: :temporary` 让监督者不拉起它；下一次 `server_process("alice")` 重建进程，`init`/`handle_continue` 从磁盘读回最近一次 `File.write!` 的内容。崩溃前还没落盘的条目，永久丢了——这正是第 5-7 跳把 `store` 做成同步的原因：把"丢"的窗口压到最小，但消不掉。
+**清单进程在第 3 跳后崩溃**（比如在 `handle_call` 里抛了异常）：`GenServer.call` 的调用方——Cowboy 连接进程——收到 exit 信号一起退出，HTTP 返回 500。`restart: :temporary` 让监督者不拉起它；下一次 `server_process("alice")` 重建进程，`init`/`handle_continue` 从磁盘读回最近一次写成功（`File.write!` + `File.rename!`）的内容。崩溃前还没落盘的条目，永久丢了——这正是第 5-7 跳把 `store` 做成同步的原因：把"丢"的窗口压到最小，但消不掉。
 
 **整个 `todo2` 节点下线**（网络断、机器关）：`:global.whereis_name` 查到的 PID 失效，挂在它上面的 `call` 直接 `:exit`。`server_process("alice")` 在 `todo1` 上重新创建进程——但新进程读的是 `todo1` 本地的 `./persist/todo1/alice` 目录，那是上一章"节点名前缀"决定的，文件可能落后或不存在。于是出现一种教科书级的分布式症状：**服务没断，数据回退了**。这正是为什么"还能查到"和"数据是最新的"是两件事。
 

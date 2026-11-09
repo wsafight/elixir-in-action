@@ -20,6 +20,18 @@ const sourceCount = new Set(chapters.flatMap(chapter => chapter.samples.map(samp
 
     <aside class="reading-note"><span class="note-icon"><Icon name="bookmark" size={19} /></span><p><strong>不用急着记住所有语法。</strong>先跑通一个例子，再问一句：如果它失败了，会发生什么？</p><a href={chapterUrl(chapters[0].slug)}>关于这本书<Icon name="arrow" size={15} /></a></aside>
 
+    <section class="why-elixir" aria-labelledby="why-title">
+      <div class="section-heading"><div><h2 id="why-title">Elixir 值得你投入时间的几个原因</h2><p>先摊开它的设计特点，后面的章节会逐一兑现。如果你的兴趣在长时间稳定运行、连接多、出错也要自己站起来的服务端系统，这本书的结构会一路向它靠近。</p></div></div>
+      <div class="why-grid">
+        <article class="why-card"><span class="why-icon"><Icon name="function" size={20} /></span><h3>数据不可变，函数式写法是一等公民</h3><p>函数拿到参数、返回新值，旧数据不被原地修改。"这段代码改了什么"能顺着参数和返回值读出来，不用猜共享状态。</p><span class="why-chapter">第 2–5 章</span></article>
+        <article class="why-card"><span class="why-icon"><Icon name="process" size={20} /></span><h3>进程极轻，且彼此隔离</h3><p>一个 BEAM 节点能同时跑几十万进程，各自有栈和邮箱，发消息而不是共享内存。一个清单、一次 HTTP 请求各占一个进程是正常写法。</p><span class="why-chapter">第 6 章起</span></article>
+        <article class="why-card"><span class="why-icon"><Icon name="tree" size={20} /></span><h3>失败是设计语言的一部分</h3><p>链接、监控、监督树：进程死了，别的进程能感知、能决定是否重建。"让它崩溃"成为站得住的架构选择，不用处处写防御性 try。</p><span class="why-chapter">第 10、11 章</span></article>
+        <article class="why-card"><span class="why-icon"><Icon name="deploy" size={20} /></span><h3>跨节点通信是内置能力，不是库</h3><p><code>send</code>、<code>GenServer.call</code>、注册名字这些写法，换一个节点上的 PID 依然成立。"单机跑通"和"多机协作"只差一层薄抽象。</p><span class="why-chapter">第 17 章</span></article>
+        <article class="why-card"><span class="why-icon"><Icon name="clock" size={20} /></span><h3>软实时调度，没有全局停顿</h3><p>每个进程有独立的小堆，垃圾回收互不影响；调度器抢占式运行，一个慢请求不会拖住整台机器。低延迟是 BEAM 的默认行为。</p><span class="why-chapter">第 6、12 章</span></article>
+        <article class="why-card"><span class="why-icon"><Icon name="search" size={20} /></span><h3>工具链对学习者友好</h3><p><code>iex</code> 自带文档查询，<code>mix</code> 收拢项目、依赖、测试、打包。<code>h()</code>、<code>i()</code> 这些内建命令，让你边读边验证。</p><span class="why-chapter">第 12、13 章</span></article>
+      </div>
+    </section>
+
     <section class="contents-section" id="contents" aria-labelledby="contents-title">
       <div class="section-heading"><div><h2 id="contents-title">一条线，读懂一个系统</h2><p>五个部分，从语言基础走到发布上线。每一章都有能动手运行的代码。</p></div><span class="chapter-total">全 {chapters.length} 章</span></div>
       <div class="parts-grid">

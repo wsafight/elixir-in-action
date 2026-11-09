@@ -108,6 +108,8 @@ defstruct next_id: 1, entries: %{}
 
 `defstruct` 声明一个结构体：它本质上是带固定字段集合的 map，字段在编译期就确定。`next_id: 1` 是字段名加默认值——新清单还没分配过编号，下一次分配的是 `1`；`entries` 仍然是"键 → 条目"的 map，但键换成了编号，日期降格成条目的一个普通字段。
 
+函数头也顺势加上结构匹配：`def add_entry(%TodoList{} = todo_list, entry)`。签名同时承担两件事——调用方传进来别的 map 会立刻 `FunctionClauseError`，编译器的类型检查也能确认 `todo_list` 就是这个 struct，之后写 `%TodoList{todo_list | ...}` 不会发警告。
+
 在这之前，`fraction.ex` 先演示了结构体本身：
 
 ```elixir
@@ -169,7 +171,7 @@ iex> TodoList.entries(updated, ~D[2026-11-09])
 `update_entry/3` 接受 `updater_fun`。模块负责找到旧条目，调用者负责描述怎么改：
 
 ```elixir
-def update_entry(todo_list, entry_id, updater_fun) do
+def update_entry(%TodoList{} = todo_list, entry_id, updater_fun) do
   case Map.fetch(todo_list.entries, entry_id) do
     :error ->
       todo_list

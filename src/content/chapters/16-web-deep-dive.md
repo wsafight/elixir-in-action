@@ -134,7 +134,7 @@ todo_web 的 `test/http_server_test.exs` 复用了第 14 章介绍的思路：
 ```elixir
 defmodule HttpServerTest do
   use ExUnit.Case, async: false
-  use Plug.Test
+  import Plug.Test
 
   test "adding an entry" do
     resp = post("/add_entry?list=test_2&date=2018-12-19&title=Dentist")

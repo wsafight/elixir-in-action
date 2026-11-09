@@ -111,11 +111,12 @@ iex> receive do
 ```elixir
 Supervisor.start_link(
   [Todo.Cache],
-  strategy: :one_for_one
+  strategy: :one_for_one,
+  name: __MODULE__
 )
 ```
 
-两行参数拆开读：`[Todo.Cache]` 是子进程规范列表，写清监督者启动后要拉起哪些进程。这里写的是模块名 `Todo.Cache`，OTP 会拿它当"启动说明书"：`use GenServer` 时注入的 `child_spec/1` 默认让监督者去调 `Todo.Cache.start_link()`。`strategy: :one_for_one` 是重启策略，"一个子进程死了，只重启那一个"（其他策略后面讲）。`start_link` 把监督者自己链接到调用进程，所以监督者和启动它的进程也是同生共死关系。
+三行参数拆开读：`[Todo.Cache]` 是子进程规范列表，写清监督者启动后要拉起哪些进程。这里写的是模块名 `Todo.Cache`，OTP 会拿它当"启动说明书"：`use GenServer` 时注入的 `child_spec/1` 默认让监督者去调 `Todo.Cache.start_link()`。`strategy: :one_for_one` 是重启策略，"一个子进程死了，只重启那一个"（其他策略后面讲）。`name: __MODULE__` 把监督者自己登记成 `Todo.System`——之后可以用名字找到它（比如 `Supervisor.which_children(Todo.System)`），重复调用 `Todo.System.start_link` 会拿到 `{:error, {:already_started, pid}}` 而不是再起一棵重复的树。`start_link` 把监督者链接到调用进程，所以监督者和启动它的进程也是同生共死关系。
 
 顶层监督者直接监督的是 `Todo.Cache`。在 `supervised_todo_cache` 中，Cache 启动数据库和清单进程时仍用未链接的 `start`，监督范围只覆盖 Cache 本身——Cache 重启，不代表它之前创建的清单进程也已经退出。
 

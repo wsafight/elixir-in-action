@@ -191,7 +191,7 @@ todo_web 和 todo_release 里的 `http_server_test.exs` 是同一套写法：
 ```elixir
 defmodule HttpServerTest do
   use ExUnit.Case, async: false
-  use Plug.Test
+  import Plug.Test
 
   test "adding an entry" do
     resp = post("/add_entry?list=test_2&date=2018-12-19&title=Dentist")
@@ -208,7 +208,7 @@ defmodule HttpServerTest do
 end
 ```
 
-`use Plug.Test` 引入 `conn/3`，手工构造一个请求 `conn`：`conn(:get, "/entries?list=x&date=2018-12-19")` 返回一个 `%Plug.Conn{}`，方法、路径、query string 都填好。配套的 `get`/`post` 辅助函数再把它喂给 `Todo.Web.call/2`——这就是第 16 章会讲的 "Plug 只需要 `init/1` 和 `call/2`" 的好处，测试不需要网络就能完整走一遍路由。
+`import Plug.Test` 引入 `conn/3`，手工构造一个请求 `conn`：`conn(:get, "/entries?list=x&date=2018-12-19")` 返回一个 `%Plug.Conn{}`，方法、路径、query string 都填好。配套的 `get`/`post` 辅助函数再把它喂给 `Todo.Web.call/2`——这就是第 16 章会讲的 "Plug 只需要 `init/1` 和 `call/2`" 的好处，测试不需要网络就能完整走一遍路由。
 
 断言的三段很清楚：`resp.status` 是 HTTP 状态码，`resp.resp_body` 是响应体字符串，`get(...)` 的返回值同型。整个用例没起 HTTP 服务器，没有端口监听，没有真正的 TCP——第 14 章前面说的"共享 `./persist` 目录"那套注意事项也适用，所以这里也是 `async: false`。
 

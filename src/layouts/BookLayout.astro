@@ -1,7 +1,7 @@
 ---
 import Sidebar from '../components/Sidebar.astro';
 import Icon from '../components/Icon.astro';
-import { repository } from '../lib/book';
+import { repository, homeUrl, withBase } from '../lib/book';
 import '../styles/global.css';
 interface Props { title?: string; description?: string; }
 const { title, description = '沿着一个 Todo 系统的演进学习 Elixir：函数式编程、进程、OTP、分布式与发布。一本对照仓库源码编写的中文学习手记。' } = Astro.props;
@@ -15,7 +15,7 @@ const { title, description = '沿着一个 Todo 系统的演进学习 Elixir：�
     <meta name="theme-color" content="#7254a6" />
     <meta property="og:title" content={title ? `${title} · Elixir 实战手记` : 'Elixir 实战手记 · 从函数到可靠系统'} />
     <meta property="og:description" content={description} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href={withBase('favicon.svg')} />
     <title>{title ? `${title} · Elixir 实战手记` : 'Elixir 实战手记 · 从函数到可靠系统'}</title>
     <script is:inline>
       try { document.documentElement.dataset.theme = localStorage.getItem('elixir-theme') || 'light'; } catch { document.documentElement.dataset.theme = 'light'; }
@@ -28,7 +28,7 @@ const { title, description = '沿着一个 Todo 系统的演进学习 Elixir：�
     <div class="workspace">
       <header class="topbar">
         <button class="icon-button mobile-menu" data-menu-toggle aria-label="打开目录" aria-expanded="false" aria-controls="sidebar"><Icon name="menu" /></button>
-        <div class="breadcrumb"><a href="/">书架</a><Icon name="chevron" size={12} /><span>{title || 'Elixir 实战手记'}</span></div>
+        <div class="breadcrumb"><a href={homeUrl()}>书架</a><Icon name="chevron" size={12} /><span>{title || 'Elixir 实战手记'}</span></div>
         <div class="header-actions"><a href={repository} target="_blank" rel="noopener noreferrer" class="repository-link"><Icon name="github" size={17} /><span>源码仓库</span><Icon name="external" size={12} /></a><span class="header-divider"></span><button class="icon-button theme-toggle" data-theme-toggle aria-label="切换到深色模式"><Icon name="sun" class="sun-icon" size={19} /><Icon name="moon" class="moon-icon" size={19} /></button></div>
       </header>
       <main id="main"><slot /></main>

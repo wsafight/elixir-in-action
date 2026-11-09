@@ -5,7 +5,7 @@ defmodule KeyValue.MixProject do
     [
       app: :key_value,
       version: "0.1.0",
-      elixir: "~> 1.6",
+      elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]

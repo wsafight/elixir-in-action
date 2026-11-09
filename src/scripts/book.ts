@@ -7,6 +7,7 @@ interface SearchChapter {
   content: string;
 }
 
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const storage = {
   get(key: string) { try { return localStorage.getItem(key); } catch { return null; } },
   set(key: string, value: string) { try { localStorage.setItem(key, value); } catch {} },
@@ -27,9 +28,15 @@ themeToggle?.addEventListener('click', () => {
 // 每次打开章节都回到顶部；带 #anchor 的导航保留锚点跳转
 if (!window.location.hash) window.scrollTo(0, 0);
 
-// 目录栏里把当前章节滚进视野
-const activeNavLink = document.querySelector<HTMLElement>('.book-nav a.active');
-activeNavLink?.scrollIntoView({ block: 'nearest' });
+// 目录栏滚动位置恢复由 Sidebar 的内联脚本在首帧前完成，这里只负责持续记录
+const bookNav = document.querySelector<HTMLElement>('.book-nav');
+function saveBookNavScroll() {
+  if (!bookNav) return;
+  try { sessionStorage.setItem('elixir-nav-scroll', String(bookNav.scrollTop)); } catch {}
+}
+bookNav?.addEventListener('scroll', saveBookNavScroll, { passive: true });
+bookNav?.addEventListener('click', saveBookNavScroll, { capture: true });
+window.addEventListener('pagehide', saveBookNavScroll);
 
 const menuToggle = document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
 function closeMenu() {
@@ -43,6 +50,13 @@ menuToggle?.addEventListener('click', () => {
 document.querySelector('[data-menu-close]')?.addEventListener('click', closeMenu);
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
 document.querySelectorAll('.book-nav a').forEach(link => link.addEventListener('click', closeMenu));
+
+// 鼠标点侧边栏链接时阻止聚焦，否则浏览器会把被截住的链接滚进视野、改变目录位置；
+// 触屏不拦截，避免抑制合成 click
+let pointerIsMouse = true;
+document.addEventListener('pointerdown', event => { pointerIsMouse = event.pointerType === 'mouse'; }, true);
+document.querySelectorAll<HTMLAnchorElement>('.book-nav a').forEach(link =>
+  link.addEventListener('mousedown', event => { if (pointerIsMouse) event.preventDefault(); }));
 
 const validSlugs = new Set(Array.from(document.querySelectorAll<HTMLElement>('[data-chapter-link]')).map(link => link.dataset.chapterLink!));
 let completed: string[] = [];
@@ -80,7 +94,7 @@ if (currentChapter) storage.set('elixir-last-chapter', currentChapter);
 const lastChapter = storage.get('elixir-last-chapter');
 const startLink = document.querySelector<HTMLAnchorElement>('[data-start-reading]');
 if (startLink && lastChapter && validSlugs.has(lastChapter)) {
-  startLink.href = `/chapters/${lastChapter}/`;
+  startLink.href = `${base}chapters/${lastChapter}/`;
   startLink.childNodes[0].textContent = '继续阅读';
 }
 
@@ -125,7 +139,7 @@ let selectedResult = -1;
 
 async function loadSearch(): Promise<SearchChapter[]> {
   if (searchData) return searchData;
-  if (!pendingSearch) pendingSearch = fetch('/search.json').then(response => {
+  if (!pendingSearch) pendingSearch = fetch(`${base}search.json`).then(response => {
     if (!response.ok) throw new Error('Search unavailable');
     return response.json() as Promise<SearchChapter[]>;
   });

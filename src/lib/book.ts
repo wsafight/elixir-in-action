@@ -38,8 +38,12 @@ export const parts = [
 
 export const repository = 'https://github.com/wsafight/elixir-in-action';
 export const repositoryBranch = '3rd-edition';
-export const chapterUrl = (slug: string) => `/chapters/${slug}/`;
+// 站点部署在 <user>.github.io/elixir-in-action/ 下，内部链接都要带上 base 前缀
+export const withBase = (path = '/') =>
+  `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}${path.replace(/^\//, '')}`;
+export const homeUrl = () => withBase('/');
+export const chapterUrl = (slug: string) => withBase(`chapters/${slug}/`);
 // 示例源码的对外 slug：去掉 code_samples/ 前缀，路径分隔符换成短横线
 export const sampleSlug = (path: string) =>
   path.replace(/^code_samples\//, '').replace(/\.(ex|exs)$/, '').replace(/\//g, '-');
-export const sampleUrl = (path: string) => `/code/${sampleSlug(path)}/`;
+export const sampleUrl = (path: string) => withBase(`code/${sampleSlug(path)}/`);

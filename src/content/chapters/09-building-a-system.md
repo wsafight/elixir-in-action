@@ -50,7 +50,7 @@ defmodule Todo.MixProject do
     [
       app: :todo,
       version: "0.1.0",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -66,7 +66,7 @@ defmodule Todo.MixProject do
 end
 ```
 
-三个块各管一段。`project/0` 是项目自述：应用名 `:todo`、版本、`~> 1.15` 是"1.15 及以上、小于 2.0"的版本约束，`start_permanent` 决定应用退出时 VM 要不要跟着停。`application/0` 描述应用怎么被启动——这里只挂了个 `:logger`，第 15 章的 `mod: {Todo.Application, []}` 就写在这一块，那才是"应用入口"。`deps/0` 列出外部依赖，`mix deps.get` 读的就是它——目前空着，第 15 章 HTTP 库进来后这里才会长东西。
+三个块各管一段。`project/0` 是项目自述：应用名 `:todo`、版本、`~> 1.20` 是"1.20 及以上、小于 2.0"的版本约束，`start_permanent` 决定应用退出时 VM 要不要跟着停。`application/0` 描述应用怎么被启动——这里只挂了个 `:logger`，第 15 章的 `mod: {Todo.Application, []}` 就写在这一块，那才是"应用入口"。`deps/0` 列出外部依赖，`mix deps.get` 读的就是它——目前空着，第 15 章 HTTP 库进来后这里才会长东西。
 
 Mix 还区分 `dev`/`test`/`prod` 三套环境，`MIX_ENV=prod` 切换，`Mix.env()` 在代码里能读到。第 15 章的运行时配置会用它区分测试端口和数据目录。
 
@@ -114,9 +114,9 @@ true
 
 ```elixir
 def handle_cast({:store, key, data}, state) do
-  key
-  |> file_name()
-  |> File.write!(:erlang.term_to_binary(data))
+  target = file_name(key)
+  File.write!(target <> ".tmp", :erlang.term_to_binary(data))
+  File.rename!(target <> ".tmp", target)
 
   {:noreply, state}
 end
@@ -124,6 +124,7 @@ end
 def handle_call({:get, key}, _, state) do
   data =
     case File.read(file_name(key)) do
+      {:ok, ""} -> nil
       {:ok, contents} -> :erlang.binary_to_term(contents)
       _ -> nil
     end
@@ -132,13 +133,13 @@ def handle_call({:get, key}, _, state) do
 end
 ```
 
-写入是 `cast`，发完不等确认：`term_to_binary` 把任意 Elixir 项（map、struct、tuple 都行）压成一段二进制，`file_name` 算出 `./persist/<key>` 的路径，`File.write!` 落盘。读取是 `call`，因为调用者要拿数据：`File.read` 成功就把二进制还原回 Elixir 项（`binary_to_term`），文件不存在或读不到就给 `nil`。注意这个实现里，"键不存在"和"键存在但值是 nil"是同一种结果。
+写入是 `cast`，发完不等确认：`term_to_binary` 把任意 Elixir 项（map、struct、tuple 都行）压成一段二进制，`file_name` 算出 `./persist/<key>` 的路径。写分两步：先写 `<key>.tmp`，再 `File.rename!` 原子地换到正式文件名——worker 中途死掉，读者看到的要么是旧文件要么是新文件，不会是一半内容或空文件。读取是 `call`，因为调用者要拿数据：`File.read` 成功就把二进制还原回 Elixir 项（`binary_to_term`），文件不存在、读不到、或是个空文件（上一次写失败留下的残骸）都给 `nil`。注意这个实现里，"键不存在"和"键存在但值是 nil"是同一种结果。
 
 这里要分清两个生命周期：进程里的当前值，和磁盘上最近一次保存的值。进程退出会丢掉内存，但已经写好的文件还在。缓存那张 map 也一样：进程一死，`"alice" => PID` 的映射就没了——名字到 PID 的映射属于易失状态，但 `./persist` 里的数据属于持久状态，两者各归各的死法。
 
 文件路径以项目运行时的工作目录为基础。换个目录运行，就会得到另一份 `persist`——数据并没有神秘消失。
 
-示例只适合可信的本地数据：没有事务、没有原子替换、没有路径校验，也别把来自不可信来源的二进制直接交给 `binary_to_term` 解码。
+示例只适合可信的本地数据：没有事务、没有路径校验、没有版本迁移，也别把来自不可信来源的二进制直接交给 `binary_to_term` 解码。
 
 服务器一侧的接法在两处回调里：
 

@@ -21,9 +21,12 @@ defmodule Todo.DatabaseWorker do
 
   @impl GenServer
   def handle_cast({:store, key, data}, db_folder) do
-    db_folder
-    |> file_name(key)
-    |> File.write!(:erlang.term_to_binary(data))
+    # Write to a temporary file and rename it over the target. Rename is
+    # atomic, so readers never see a partially written or empty file if
+    # the worker dies mid-write.
+    target = file_name(db_folder, key)
+    File.write!(target <> ".tmp", :erlang.term_to_binary(data))
+    File.rename!(target <> ".tmp", target)
 
     {:noreply, db_folder}
   end
@@ -32,6 +35,7 @@ defmodule Todo.DatabaseWorker do
   def handle_call({:get, key}, _, db_folder) do
     data =
       case File.read(file_name(db_folder, key)) do
+        {:ok, ""} -> nil
         {:ok, contents} -> :erlang.binary_to_term(contents)
         _ -> nil
       end

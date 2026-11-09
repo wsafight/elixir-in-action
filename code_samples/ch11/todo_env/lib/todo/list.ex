@@ -9,24 +9,24 @@ defmodule Todo.List do
     )
   end
 
-  def size(todo_list) do
+  def size(%Todo.List{} = todo_list) do
     map_size(todo_list.entries)
   end
 
-  def add_entry(todo_list, entry) do
+  def add_entry(%Todo.List{} = todo_list, entry) do
     entry = Map.put(entry, :id, todo_list.next_id)
     new_entries = Map.put(todo_list.entries, todo_list.next_id, entry)
 
     %Todo.List{todo_list | entries: new_entries, next_id: todo_list.next_id + 1}
   end
 
-  def entries(todo_list, date) do
+  def entries(%Todo.List{} = todo_list, date) do
     todo_list.entries
     |> Map.values()
     |> Enum.filter(fn entry -> entry.date == date end)
   end
 
-  def update_entry(todo_list, entry_id, updater_fun) do
+  def update_entry(%Todo.List{} = todo_list, entry_id, updater_fun) do
     case Map.fetch(todo_list.entries, entry_id) do
       :error ->
         todo_list
@@ -38,7 +38,7 @@ defmodule Todo.List do
     end
   end
 
-  def delete_entry(todo_list, entry_id) do
+  def delete_entry(%Todo.List{} = todo_list, entry_id) do
     %Todo.List{todo_list | entries: Map.delete(todo_list.entries, entry_id)}
   end
 end
